@@ -67,6 +67,7 @@ push-release-3:
 #Deploy our container from the Oracle Container Registry to the Oracle Container Engine (Kubernetes)
 deploy-to-cluster:
   box:
+<<<<<<< HEAD
     id: alpine
     cmd: /bin/sh
   steps:
@@ -77,25 +78,85 @@ deploy-to-cluster:
         token: $KUBERNETES_AUTH_TOKEN
         insecure-skip-tls-verify: true
         command: create namespace $NAMESPACE; echo delete registry secret
+=======
+    id: debian:stable-slim
+  #    cmd: /bin/sh
+  steps:
+    - bash-template
+    # - damith/wercker-oke-token-v2@3.14.4:
+    #     tenancy: $TENANCY_OCID
+    #     user: $USER_OCID
+    #     region: $REGION
+    #     private_key: $PRIVATE_KEY
+    #     fingerprint: $FINGERPRINT
+    - shellcheck
+
+    - install-packages:
+        packages: curl
+    - script:
+        name: install oci cli
+        code: |
+            curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh > install.sh
+            chmod +x install.sh
+            ./install.sh --accept-all-defaults
+            rm -Rf ~/.oci
+            mkdir ~/.oci
+            cat > ~/.oci/config << EOF
+            [DEFAULT]
+            user=$USER_OCID
+            fingerprint=$FINGERPRINT
+            key_file=~/.oci/$PRIVATE_KEY
+            tenancy=$TENANCY_OCID
+            region=$REGION
+            EOF
+    - script:
+        name: "Visualise OCI config"
+        code: cat ~/.oci/config
+    - script:
+        name: copy private key
+        code: |
+          cp $PRIVATE_KEY ~/.oci
+          chmod go-rwx ~/.oci/$PRIVATE_KEY
+          ls -lart ~/.oci
+    - script:
+        name: create kubeconfig
+        code: |
+            echo $PATH
+            export OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING=True
+            export PATH=$PATH:/root/bin
+            mkdir -p ~/.kube
+            oci setup repair-file-permissions --file ~/.oci/config
+            $OCICLI_GET_KEY_COMMAND
+            export KUBECONFIG=~/.kube/config
+>>>>>>> 69db0794b8dbd877d00d323cefd253f953ee1e22
     - kubectl:
         name: delete secret
         server: $KUBERNETES_MASTER
-        token: $KUBERNETES_AUTH_TOKEN
+        #        token: $KUBERNETES_AUTH_TOKEN
         insecure-skip-tls-verify: true
+<<<<<<< HEAD
         command: delete secret wercker -n $NAMESPACE ; echo delete registry secret
+=======
+        command: delete secret wercker; echo delete registry secret
+
+>>>>>>> 69db0794b8dbd877d00d323cefd253f953ee1e22
     - kubectl:
         name: create secret
         server: $KUBERNETES_MASTER
-        token: $KUBERNETES_AUTH_TOKEN
+        #        token: $KUBERNETES_AUTH_TOKEN
         insecure-skip-tls-verify: true
+<<<<<<< HEAD
         command: create secret docker-registry wercker -n $NAMESPACE --docker-server=$DOCKER_REGISTRY --docker-email=nobody@oracle.com --docker-username=$DOCKER_USERNAME --docker-password='$OCI_AUTH_TOKEN' -n $NAMESPACE; echo create registry secret
+=======
+        command: create secret docker-registry wercker --docker-server=$DOCKER_REGISTRY --docker-email=nobody@oracle.com --docker-username=$DOCKER_USERNAME --docker-password='$OCI_AUTH_TOKEN'; echo create registry secret
+>>>>>>> 69db0794b8dbd877d00d323cefd253f953ee1e22
     - script:
         name: "Visualise Kubernetes config"
         code: cat kube-helidon-movie-api-mp-config.yml
     - kubectl:
         name: deploy helidon-movie-api-mp to kubernetes
         server: $KUBERNETES_MASTER
-        token: $KUBERNETES_AUTH_TOKEN
+        #        token: $KUBERNETES_AUTH_TOKEN
         insecure-skip-tls-verify: true
         command: apply -f kube-helidon-movie-api-mp-config.yml -n $NAMESPACE
     - script:
@@ -104,7 +165,7 @@ deploy-to-cluster:
     - kubectl:
         name: deploy springboot-movie-people-api to kubernetes
         server: $KUBERNETES_MASTER
-        token: $KUBERNETES_AUTH_TOKEN
+        #        token: $KUBERNETES_AUTH_TOKEN
         insecure-skip-tls-verify: true
         command: apply -f kube-springboot-movie-people-api-config.yml -n $NAMESPACE
     - script:
@@ -113,6 +174,6 @@ deploy-to-cluster:
     - kubectl:
         name: deploy jet-movie-msa-ui to kubernetes
         server: $KUBERNETES_MASTER
-        token: $KUBERNETES_AUTH_TOKEN
+        #        token: $KUBERNETES_AUTH_TOKEN
         insecure-skip-tls-verify: true
         command: apply -f kube-jet-movie-msa-ui-config.yml -n $NAMESPACE
