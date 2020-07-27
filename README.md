@@ -5,11 +5,6 @@
 ## Introduction
 본 핸즈온 문서는 마이크로 서비스 애플리케이션에 대한 빌드/테스트/배포 자동화를 위한 CI/CD 파이프라인을 구성하고, 이를 관리형 쿠버네티스 서비스에 배포하는 전반적인 과정을 다루고 있습니다. 본 워크샵을 통해서 오라클의 컨테이너 기반 CI/CD 서비스인 Wercker(워커)와 오라클의 컨테이너 서비스인 Oracle Kubernetes Engine (OKE) 및 Oracle Container Registry Service에 대한 경험을 해볼 수 있습니다. 
 
-## 발표자료 및 핸즈온 문서 다운로드
-https://objectstorage.ap-seoul-1.oraclecloud.com/p/kz_vwPB4AivrqMU-e0ijUvvw7094nEDatCyppQ2aPbw/n/apackrsct01/b/bucket-20190614-1639/o/Cloud%20Native%20AppDev%20on%20Oracle%20Container%20Service.pdf
-
-https://objectstorage.ap-seoul-1.oraclecloud.com/p/z8JeDT-EnIKA1qk62UPwcEBIdv76L891RPZXZXbAScY/n/apackrsct01/b/bucket-20190614-1639/o/Cloud%20Native%20Development%20on%20Oracle%20Container%20Service_Handson_workshop.pdf
-
 ## Objectives
 * DevOps 이해
 * Oracle Kubernetes Cluster 환경 구성
@@ -379,9 +374,44 @@ https://objectstorage.ap-seoul-1.oraclecloud.com/p/z8JeDT-EnIKA1qk62UPwcEBIdv76L
         **Key:** KUBERNETES_MASTER  
         **Value:**: KUBERNETES SERVER MASTER URL (예. https://c3donjwgqzd.ap-seoul-1.clusters.oci.oraclecloud.com:6443)
 
-    6. KUBERNETES_AUTH_TOKEN도 마찬가지로 .kube/config 파일에서 얻을 수 있습니다. 해당 파일을 편집기등으로 오픈한 후 AUTH TOKEN을 복사해서 입력합니다.
+
+    6. KUBERNETES_AUTH_TOKEN은 Kubernetes Service Account의 토큰을 활용합니다. 아래의 내용으로 YAML 파일을 생성한 후 cluster-admin Role을 갖는 Service Account를 생성합니다.
+
+        **wercker-oke-sa.yaml**
+        ```
+        apiVersion: v1
+        kind: ServiceAccount
+        metadata:
+          name: oke-admin
+          namespace: kube-system
+        ---
+        apiVersion: rbac.authorization.k8s.io/v1beta1
+        kind: ClusterRoleBinding
+        metadata:
+          name: oke-admin
+        roleRef:
+          apiGroup: rbac.authorization.k8s.io
+          kind: ClusterRole
+          name: cluster-admin
+        subjects:
+        - kind: ServiceAccount
+          name: oke-admin
+          namespace: kube-system
+        ```
+
+        **Service Account 생성**
+        ```
+        $ kubecl create -f wercker-oke-sa.yaml
+        ```
+
+        **AUTH TOKEN 확인**
+        ```
+        $ kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep oke-admin | awk '{print $1}')
+        ```
 
         ![](images/oci-oke-kubeconfig-auth-token.png)
+
+        위 Token 값을 복사한 후 Wercker 환경 변수로 등록합니다.
 
         **Key:** KUBERNETES_AUTH_TOKEN  
         **Value:**: KUBERNETES AUTH TOKEN (예. LS0tLS1CRUdJTiBDRVJUSU................)

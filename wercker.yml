@@ -4,7 +4,7 @@ box:
 #  id: jimador/docker-jdk-8-maven-node
 ports:
   - 8080
- 
+
 #Build our application using Maven, just as we always have
 build:
   steps:
@@ -16,7 +16,7 @@ build:
     - script:
         name: maven helidon build
         cwd: helidon-movie-api-mp
-        code: mvn clean package 
+        code: mvn clean package
     - script:
         name: maven spring boot build
         cwd: springboot-movie-people-api
@@ -54,7 +54,7 @@ push-release-3:
         code: pwd
     - internal/docker-build:
         context: jet-movie-msa-ui
-        dockerfile: Dockerfile 
+        dockerfile: Dockerfile
         image-name: jet-movie-msa-ui
     - internal/docker-push:
         image-name: jet-movie-msa-ui
@@ -69,60 +69,50 @@ deploy-to-cluster:
   box:
     id: alpine
     cmd: /bin/sh
-
   steps:
     - bash-template
-    
     - kubectl:
         name: create namespace
         server: $KUBERNETES_MASTER
         token: $KUBERNETES_AUTH_TOKEN
         insecure-skip-tls-verify: true
-        command: apply -f kube-namespace-config.yaml
-
+        command: create namespace $NAMESPACE; echo delete registry secret
     - kubectl:
         name: delete secret
         server: $KUBERNETES_MASTER
         token: $KUBERNETES_AUTH_TOKEN
         insecure-skip-tls-verify: true
-        command: delete secret wercker --namespace=${KUBERNETES_NAMESPACE}; echo delete registry secret
-
+        command: delete secret wercker -n $NAMESPACE ; echo delete registry secret
     - kubectl:
         name: create secret
         server: $KUBERNETES_MASTER
         token: $KUBERNETES_AUTH_TOKEN
         insecure-skip-tls-verify: true
-        command: create secret docker-registry wercker --docker-server=$DOCKER_REGISTRY --docker-email=nobody@oracle.com --docker-username=$DOCKER_USERNAME --docker-password='$OCI_AUTH_TOKEN' --namespace=${KUBERNETES_NAMESPACE}; echo delete registry secret
-
+        command: create secret docker-registry wercker -n $NAMESPACE --docker-server=$DOCKER_REGISTRY --docker-email=nobody@oracle.com --docker-username=$DOCKER_USERNAME --docker-password='$OCI_AUTH_TOKEN' -n $NAMESPACE; echo create registry secret
     - script:
         name: "Visualise Kubernetes config"
         code: cat kube-helidon-movie-api-mp-config.yml
-
     - kubectl:
         name: deploy helidon-movie-api-mp to kubernetes
         server: $KUBERNETES_MASTER
         token: $KUBERNETES_AUTH_TOKEN
         insecure-skip-tls-verify: true
-        command: apply -f kube-helidon-movie-api-mp-config.yml
-
+        command: apply -f kube-helidon-movie-api-mp-config.yml -n $NAMESPACE
     - script:
         name: "Visualise Kubernetes config"
         code: cat kube-springboot-movie-people-api-config.yml
-
     - kubectl:
         name: deploy springboot-movie-people-api to kubernetes
         server: $KUBERNETES_MASTER
         token: $KUBERNETES_AUTH_TOKEN
         insecure-skip-tls-verify: true
-        command: apply -f kube-springboot-movie-people-api-config.yml
-
+        command: apply -f kube-springboot-movie-people-api-config.yml -n $NAMESPACE
     - script:
         name: "Visualise Kubernetes config"
         code: cat kube-jet-movie-msa-ui-config.yml
-
     - kubectl:
         name: deploy jet-movie-msa-ui to kubernetes
         server: $KUBERNETES_MASTER
         token: $KUBERNETES_AUTH_TOKEN
         insecure-skip-tls-verify: true
-        command: apply -f kube-jet-movie-msa-ui-config.yml
+        command: apply -f kube-jet-movie-msa-ui-config.yml -n $NAMESPACE
