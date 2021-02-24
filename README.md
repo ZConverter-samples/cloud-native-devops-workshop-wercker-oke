@@ -1,6 +1,5 @@
 # Cloud Native DevOps Hands-On Workshop - Wercker and OKE (Oracle Kubernetes Engine)
 
-
 ![](images/header.png)
  
 ## Introduction
